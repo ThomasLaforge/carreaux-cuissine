@@ -1,5 +1,5 @@
 import { Honeycomb, Hexagon } from "react-honeycomb";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import boisImg from "./bois.jpg"
 import blancoImg from "./blanco.jpg"
@@ -23,7 +23,11 @@ const columns = 18 // Math.floor(2.6 * 8); // x mètres et 1 mètre = 8 carreaux
 const lines = 17 // Math.floor(3.2 * 8);
 const nbTiles = Math.floor(columns * lines * 1.1) + 6;
 const DEFAULT_COLOR = "#EEEEEE"
-const DEFAULT_JOINTS_COLOR = "#555555"
+const COLOR_MAPEI_GRIS_FONCE = "#8b8e92"
+const COLOR_MAPEI_GRIS_CIMENT = "#817f7b"
+const COLOR_MAPEI_GRIS_LONDRES = "#6c666b"
+const COLORS_JOINT = [COLOR_MAPEI_GRIS_FONCE, COLOR_MAPEI_GRIS_CIMENT, COLOR_MAPEI_GRIS_LONDRES]
+const DEFAULT_JOINTS_COLOR = "#8b8e92"
 let DEFAULT_TILES = new Array(nbTiles).fill(DEFAULT_COLOR);
 const COLORS = [darkgreyImg, lightgreyImg, blancoImg, boisImg];
 const SIZES = [3, 6, 6, 3] 
@@ -42,8 +46,35 @@ for (let i = 0; i < NB_ILOT_LINE; i++) {
 
 const NB_COLORS = COLORS.length
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+
+function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = useRef(callback)
+
+  // Remember the latest callback if it changes.
+  useIsomorphicLayoutEffect(() => {
+    savedCallback.current = callback
+  }, [callback])
+
+  // Set up the interval.
+  useEffect(() => {
+    // Don't schedule if no delay is specified.
+    // Note: 0 is a valid value for delay.
+    if (!delay && delay !== 0) {
+      return
+    }
+
+    const id = setInterval(() => savedCallback.current(), delay)
+
+    return () => clearInterval(id)
+  }, [delay])
+}
+
 export default function App() {
   const [color, setColor] = useState(COLORS[0]);
+  const [colorJointIndex, setColorJointIndex] = useState(0);
   const [items, setItems] = useState(DEFAULT_TILES);
   // const [percents, updatePercents] = useState(COLORS.map(() => 1/NB_COLORS))
   const [percents, updatePercents] = useState([0.1666666, 0.333333, 0.333333, 0.1666])
@@ -59,6 +90,17 @@ export default function App() {
 
     setItems(newItems)
   }, [reload, percents, setItems])
+
+  useInterval(() => {
+    let i = colorJointIndex
+    i++
+    if(i > COLORS_JOINT.length - 1){
+      i = 0
+    }
+    console.log('toto', i)
+    setColorJointIndex(i)
+    setJointsColors(COLORS_JOINT[colorJointIndex])
+  }, 2000)
 
   return (
     <div className="App">
